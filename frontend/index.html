@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Silent Speech AI | Pro Dashboard</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Tailwind & ChartJS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'sans-serif'],
+          },
+          colors: {
+            appbg: '#0A0B10',
+            panelbg: 'rgba(20, 22, 30, 0.65)',
+            panelborder: 'rgba(255, 255, 255, 0.08)',
+            primary: '#00D1FF',
+            secondary: '#A020F0'
+          },
+          animation: {
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'waveform': 'waveform 1.2s ease-in-out infinite',
+            'float': 'float 4s ease-in-out infinite',
+          },
+          keyframes: {
+            waveform: {
+              '0%, 100%': { transform: 'scaleY(0.4)' },
+              '50%': { transform: 'scaleY(1)' },
+            },
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-5px)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #0A0B10;
+      color: #E2E8F0;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(0, 209, 255, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(160, 32, 240, 0.08) 0%, transparent 40%);
+      background-attachment: fixed;
+      overflow-x: hidden;
+    }
+
+    .glass-panel {
+      background: var(--tw-colors-panelbg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--tw-colors-panelborder);
+      border-radius: 1.25rem;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .glass-panel:hover {
+      border-color: rgba(0, 209, 255, 0.2);
+      box-shadow: 0 8px 32px 0 rgba(0, 209, 255, 0.05);
+    }
+
+    .btn-glass {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(4px);
+      transition: all 0.2s ease;
+    }
+    
+    .btn-glass:hover:not(:disabled) {
+      background: rgba(0, 209, 255, 0.15);
+      border-color: rgba(0, 209, 255, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .btn-glass:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(0, 209, 255, 0.5); }
+
+    /* Tracking Overlay */
+    .tracking-overlay {
+      position: absolute; inset: 0;
+      pointer-events: none;
+      display: none;
+      z-index: 10;
+    }
+    .active .tracking-overlay { display: block; }
+    
+    .lip-box {
+      position: absolute;
+      top: 55%; left: 35%; right: 35%; height: 20%;
+      border: 2px dashed rgba(0, 209, 255, 0.6);
+      border-radius: 20px;
+      box-shadow: 0 0 15px rgba(0, 209, 255, 0.2);
+    }
+
+    /* Waveform Bars */
+    .wave-bar {
+      width: 4px;
+      height: 100%;
+      background: #00D1FF;
+      border-radius: 4px;
+      animation: waveform 1s ease-in-out infinite;
+      transform-origin: bottom;
+    }
+    
+    /* Text Glow */
+    .text-glow { text-shadow: 0 0 15px rgba(0, 209, 255, 0.6); }
+    .text-glow-purple { text-shadow: 0 0 15px rgba(160, 32, 240, 0.6); }
+
+    select {
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      background-size: 1em;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col p-4 lg:p-6 gap-6">
+
+  <!-- TOP HEADER -->
+  <header class="glass-panel px-6 py-4 flex justify-between items-center shrink-0">
+    <div class="flex items-center gap-4">
+      <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-[0_0_20px_rgba(0,209,255,0.4)] animate-float">
+        <i class="fa-solid fa-microphone-slash text-white text-xl"></i>
+      </div>
+      <div>
+        <h1 class="text-2xl font-bold text-white tracking-tight">Silent Speech <span class="text-primary">AI</span></h1>
+        <p class="text-xs text-gray-400 font-medium tracking-wide">ENTERPRISE INFERENCE DASHBOARD</p>
+      </div>
+    </div>
+    
+    <div class="flex items-center gap-4">
+      <button id="voiceToggle" class="btn-glass px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition">
+        <i id="voiceIcon" class="fa-solid fa-volume-xmark text-gray-400"></i>
+        <span id="voiceText" class="text-gray-300">Voice Off</span>
+      </button>
+      
+      <button id="mainActionBtn" onclick="toggleSystem()" class="bg-gradient-to-r from-gray-700 to-gray-800 hover:from-primary hover:to-secondary text-white px-6 py-2 rounded-lg font-bold shadow-lg transition-all transform hover:scale-105 flex items-center gap-2 border border-white/10">
+        <i id="btnIcon" class="fa-solid fa-power-off"></i>
+        <span id="btnText">Start System</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN DASHBOARD -->
+  <main class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
+    
+    <!-- LEFT PANEL: Settings & Status -->
+    <div class="lg:col-span-3 flex flex-col gap-6">
+      
+      <!-- System Status -->
+      <div class="glass-panel p-5 flex flex-col gap-4">
+        <h2 class="text-xs font-bold text-gray-400 tracking-widest uppercase mb-2"><i class="fa-solid fa-server mr-2"></i>System Status</h2>
+        
+        <div class="flex justify-between items-center p-3 rounded-lg bg-black/20 border border-white/5">
+          <span class="text-sm text-gray-300">AI Engine</span>
+          <div class="flex items-center gap-2">
+            <div id="aiIndicator" class="w-2.5 h-2.5 rounded-full bg-gray-500"></div>
+            <span id="aiStatus" class="text-xs font-bold text-gray-400 uppercase">Standby</span>
+          </div>
+        </div>
+
+        <div class="flex justify-between items-center p-3 rounded-lg bg-black/20 border border-white/5">
+          <span class="text-sm text-gray-300">Camera</span>
+          <div class="flex items-center gap-2">
+            <span id="camStatus" class="text-xs font-bold text-gray-400 uppercase">Offline</span>
+          </div>
+        </div>
+        
+        <div class="flex justify-between items-center p-3 rounded-lg bg-black/20 border border-white/5">
+          <span class="text-sm text-gray-300">Processing Rate</span>
+          <span class="text-sm font-mono text-primary font-bold"><span id="fpsCount">0</span> FPS</span>
+        </div>
+        
+        <div class="flex justify-between items-center p-3 rounded-lg bg-black/20 border border-white/5">
+          <span class="text-sm text-gray-300">Speech Status</span>
+          <div class="flex h-4 items-end gap-1 opacity-30" id="speechWaveform">
+            <div class="wave-bar" style="animation-delay: 0.1s"></div>
+            <div class="wave-bar" style="animation-delay: 0.3s"></div>
+            <div class="wave-bar" style="animation-delay: 0.2s"></div>
+            <div class="wave-bar" style="animation-delay: 0.4s"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Model Configuration -->
+      <div class="glass-panel p-5 flex flex-col gap-4 flex-1">
+        <h2 class="text-xs font-bold text-gray-400 tracking-widest uppercase mb-2"><i class="fa-solid fa-microchip mr-2"></i>Configuration</h2>
+        
+        <div>
+          <label class="block text-xs text-gray-400 mb-2 font-medium">Active Model</label>
+          <select id="modelSelector" class="w-full bg-black/40 border border-white/10 text-sm text-white rounded-lg p-3 outline-none focus:border-primary transition cursor-pointer">
+            <option value="knn" selected>K-Nearest Neighbors (KNN) - Active</option>
+            <option value="svm" disabled>Support Vector Machine - Coming Soon</option>
+            <option value="rf" disabled>Random Forest - Coming Soon</option>
+            <option value="cnn" disabled>CNN Deep Learning - Future</option>
+            <option value="lstm" disabled>LSTM Sequence Model - Future</option>
+          </select>
+        </div>
+
+        <div class="mt-auto grid grid-cols-2 gap-3 pt-4">
+          <button id="btnScreenshot" onclick="takeScreenshot()" disabled class="btn-glass p-3 rounded-lg flex flex-col items-center justify-center gap-2 text-xs font-semibold text-gray-300">
+            <i class="fa-solid fa-camera text-lg text-gray-400"></i> Screenshot
+          </button>
+          <button id="btnFullscreen" onclick="toggleFullscreen()" class="btn-glass p-3 rounded-lg flex flex-col items-center justify-center gap-2 text-xs font-semibold text-gray-300">
+            <i class="fa-solid fa-expand text-lg text-gray-400"></i> Fullscreen
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- CENTER PANEL: Webcam & Prediction -->
+    <div class="lg:col-span-6 flex flex-col gap-6">
+      
+      <!-- Video Feed Container -->
+      <div id="videoContainer" class="glass-panel p-2 relative w-full aspect-[4/3] rounded-[1.5rem] overflow-hidden group flex flex-col bg-black">
+        <video id="webcam" autoplay playsinline class="w-full h-full object-cover rounded-[1.25rem]"></video>
+        
+        <div class="tracking-overlay">
+          <div class="lip-box"></div>
+          
+          <!-- Corner Accents -->
+          <div class="absolute top-6 left-6 w-8 h-8 border-t-2 border-l-2 border-primary"></div>
+          <div class="absolute top-6 right-6 w-8 h-8 border-t-2 border-r-2 border-primary"></div>
+          <div class="absolute bottom-6 left-6 w-8 h-8 border-b-2 border-l-2 border-primary"></div>
+          <div class="absolute bottom-6 right-6 w-8 h-8 border-b-2 border-r-2 border-primary"></div>
+        </div>
+
+        <div class="absolute top-6 left-6 glass px-3 py-1.5 rounded-lg flex items-center gap-2 backdrop-blur-md bg-black/50 border border-white/10">
+          <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+          <span class="text-[10px] font-bold text-white uppercase tracking-widest" id="feedLabel">Standby</span>
+        </div>
+      </div>
+
+      <!-- Live Prediction Display -->
+      <div class="glass-panel p-6 flex flex-col justify-center items-center relative overflow-hidden flex-1 min-h-[160px]">
+        <div class="absolute top-0 right-0 w-32 h-32 bg-primary/20 blur-[60px] rounded-full"></div>
+        
+        <h3 class="text-xs text-gray-400 uppercase tracking-widest font-bold absolute top-6 left-6">Detected Word</h3>
+        
+        <div id="liveWord" class="text-5xl lg:text-6xl font-bold text-white mt-4 text-glow transition-all duration-300 z-10 text-center">
+          ---
+        </div>
+
+        <div class="w-full max-w-md mt-6 relative z-10">
+          <div class="flex justify-between items-end mb-2">
+            <span class="text-xs text-gray-400 font-semibold uppercase">Confidence Score</span>
+            <span id="confidenceText" class="text-primary font-mono font-bold">0%</span>
+          </div>
+          <div class="w-full h-2 bg-gray-800/50 rounded-full overflow-hidden border border-white/5">
+            <div id="confidenceBar" class="h-full bg-gradient-to-r from-primary to-secondary transition-all duration-300 w-0"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT PANEL: History & Analytics -->
+    <div class="lg:col-span-3 flex flex-col gap-6">
+      
+      <!-- Session Analytics -->
+      <div class="glass-panel p-5">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xs font-bold text-gray-400 tracking-widest uppercase"><i class="fa-solid fa-chart-pie mr-2"></i>Analytics</h2>
+          <button onclick="resetSession()" class="text-xs text-gray-400 hover:text-red-400 transition" title="Reset Session"><i class="fa-solid fa-arrow-rotate-right"></i></button>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-black/20 border border-white/5 p-3 rounded-lg">
+            <p class="text-[10px] text-gray-400 uppercase font-semibold">Total Words</p>
+            <p id="totalWords" class="text-xl font-bold text-white mt-1">0</p>
+          </div>
+          <div class="bg-black/20 border border-white/5 p-3 rounded-lg">
+            <p class="text-[10px] text-gray-400 uppercase font-semibold">Avg Conf.</p>
+            <p class="text-xl font-bold text-primary mt-1"><span id="avgConf">0</span><span class="text-sm">%</span></p>
+          </div>
+          <div class="bg-black/20 border border-white/5 p-3 rounded-lg col-span-2">
+            <p class="text-[10px] text-gray-400 uppercase font-semibold">Most Frequent</p>
+            <p id="freqWord" class="text-lg font-bold text-secondary mt-1">None</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Prediction History -->
+      <div class="glass-panel p-5 flex flex-col flex-1 min-h-[300px]">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xs font-bold text-gray-400 tracking-widest uppercase"><i class="fa-solid fa-clock-rotate-left mr-2"></i>History</h2>
+          <button onclick="downloadCSV()" class="text-xs text-primary hover:text-white transition bg-primary/10 px-2 py-1 rounded" title="Download CSV">
+            <i class="fa-solid fa-download mr-1"></i> CSV
+          </button>
+        </div>
+        
+        <div id="historyList" class="flex-1 overflow-y-auto space-y-2 pr-2">
+          <div class="text-sm text-gray-500 text-center py-6 italic font-medium">Awaiting predictions...</div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- BOTTOM PANEL: Performance Chart -->
+  <footer class="glass-panel p-5">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xs font-bold text-gray-400 tracking-widest uppercase"><i class="fa-solid fa-chart-line mr-2"></i>Performance Timeline</h2>
+      <div class="flex gap-2">
+        <span class="flex items-center text-[10px] text-gray-400 font-semibold"><span class="w-2 h-2 rounded-full bg-primary mr-1"></span> Confidence</span>
+      </div>
+    </div>
+    <div class="w-full h-40">
+      <canvas id="performanceChart"></canvas>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script>
+    // Elements
+    const video = document.getElementById("webcam");
+    const container = document.getElementById("videoContainer");
+    const liveWord = document.getElementById("liveWord");
+    const confidenceText = document.getElementById("confidenceText");
+    const confidenceBar = document.getElementById("confidenceBar");
+    const historyList = document.getElementById("historyList");
+    
+    // Stats
+    const totalWordsEl = document.getElementById("totalWords");
+    const avgConfEl = document.getElementById("avgConf");
+    const freqWordEl = document.getElementById("freqWord");
+    
+    // Controls
+    const mainActionBtn = document.getElementById("mainActionBtn");
+    const btnText = document.getElementById("btnText");
+    const btnIcon = document.getElementById("btnIcon");
+    const aiIndicator = document.getElementById("aiIndicator");
+    const aiStatus = document.getElementById("aiStatus");
+    const camStatus = document.getElementById("camStatus");
+    const feedLabel = document.getElementById("feedLabel");
+    const fpsCount = document.getElementById("fpsCount");
+    const speechWaveform = document.getElementById("speechWaveform");
+    const voiceToggleBtn = document.getElementById("voiceToggle");
+    const voiceIcon = document.getElementById("voiceIcon");
+    const voiceText = document.getElementById("voiceText");
+    const btnScreenshot = document.getElementById("btnScreenshot");
+    
+    // Hidden Canvas
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d", { alpha: false });
+
+    // State Variables
+    let isRunning = false;
+    let loopInterval = null;
+    let voiceOutput = false;
+    let frames = 0;
+    let lastFpsTime = Date.now();
+    let sessionData = []; // for CSV export
+    let wordCounts = {};
+    let processing = false;
+
+    // Chart.js Setup
+    const ctxChart = document.getElementById('performanceChart').getContext('2d');
+    const chart = new Chart(ctxChart, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Confidence (%)',
+          data: [],
+          borderColor: '#00D1FF',
+          backgroundColor: 'rgba(0, 209, 255, 0.1)',
+          borderWidth: 2,
+          pointBackgroundColor: '#A020F0',
+          pointRadius: 3,
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false, color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: {size: 10} } },
+          y: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: {size: 10} } }
+        },
+        animation: { duration: 0 }
+      }
+    });
+
+    // Toggle Voice
+    voiceToggleBtn.addEventListener('click', () => {
+      voiceOutput = !voiceOutput;
+      if (voiceOutput) {
+        voiceIcon.className = "fa-solid fa-volume-high text-primary";
+        voiceText.className = "text-primary font-bold";
+        voiceText.innerText = "Voice On";
+      } else {
+        voiceIcon.className = "fa-solid fa-volume-xmark text-gray-400";
+        voiceText.className = "text-gray-300";
+        voiceText.innerText = "Voice Off";
+      }
+    });
+
+    function speak(text) {
+      if (!voiceOutput || !text || text === "Waiting for speech..." || text === "No Face Detected" || text === "Error") return;
+      const ut = new SpeechSynthesisUtterance(text);
+      ut.rate = 1.1;
+      speechSynthesis.speak(ut);
+    }
+
+    // Toggle System
+    function toggleSystem() {
+      if (isRunning) stopSystem();
+      else startSystem();
+    }
+
+    async function startSystem() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: "user" } });
+        video.srcObject = stream;
+        
+        isRunning = true;
+        container.classList.add("active");
+        btnScreenshot.disabled = false;
+        
+        // UI Updates
+        mainActionBtn.className = "bg-red-500/20 hover:bg-red-500/30 text-red-500 border border-red-500/50 px-6 py-2 rounded-lg font-bold shadow-[0_0_15px_rgba(239,68,68,0.2)] transition-all transform hover:scale-105 flex items-center gap-2";
+        btnText.innerText = "Stop System";
+        btnIcon.className = "fa-solid fa-stop";
+        
+        aiIndicator.className = "w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_10px_#00D1FF] animate-pulse";
+        aiStatus.innerText = "Active";
+        aiStatus.className = "text-xs font-bold text-primary uppercase";
+        
+        camStatus.innerText = "Online";
+        camStatus.className = "text-xs font-bold text-green-400 uppercase";
+        feedLabel.innerText = "LIVE REC";
+        
+        video.onloadedmetadata = () => {
+          loopInterval = setInterval(fetchPrediction, 100); // 100ms loop
+        };
+      } catch (err) {
+        console.error(err);
+        alert("Camera access denied or unavailable.");
+      }
+    }
+
+    function stopSystem() {
+      isRunning = false;
+      container.classList.remove("active");
+      btnScreenshot.disabled = true;
+      
+      if (video.srcObject) {
+        video.srcObject.getTracks().forEach(t => t.stop());
+        video.srcObject = null;
+      }
+      clearInterval(loopInterval);
+      
+      // UI Reset
+      mainActionBtn.className = "bg-gradient-to-r from-gray-700 to-gray-800 hover:from-primary hover:to-secondary text-white px-6 py-2 rounded-lg font-bold shadow-lg transition-all transform hover:scale-105 flex items-center gap-2 border border-white/10";
+      btnText.innerText = "Start System";
+      btnIcon.className = "fa-solid fa-power-off";
+      
+      aiIndicator.className = "w-2.5 h-2.5 rounded-full bg-gray-500";
+      aiStatus.innerText = "Standby";
+      aiStatus.className = "text-xs font-bold text-gray-400 uppercase";
+      
+      camStatus.innerText = "Offline";
+      camStatus.className = "text-xs font-bold text-gray-400 uppercase";
+      feedLabel.innerText = "STANDBY";
+      speechWaveform.style.opacity = "0.3";
+      
+      liveWord.innerText = "---";
+      confidenceText.innerText = "0%";
+      confidenceBar.style.width = "0%";
+      fpsCount.innerText = "0";
+    }
+
+    async function fetchPrediction() {
+      if (!isRunning || video.videoWidth === 0 || processing) return;
+      processing = true;
+
+      // FPS Calculation
+      frames++;
+      let now = Date.now();
+      if (now - lastFpsTime >= 1000) {
+        fpsCount.innerText = frames;
+        frames = 0;
+        lastFpsTime = now;
+      }
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+      let imgData = canvas.toDataURL("image/jpeg", 0.7).split(",")[1];
+
+      try {
+        const res = await fetch("http://127.0.0.1:5000/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: imgData })
+        });
+        
+        if (!res.ok) throw new Error("API Error");
+        const data = await res.json();
+        
+        updateDashboard(data);
+      } catch (err) {
+        console.error(err);
+      }
+      processing = false;
+    }
+
+    function updateDashboard(data) {
+      const word = data.word || "Error";
+      const conf = data.confidence || 0;
+      
+      // Speech Waveform toggle based on movement
+      if (word !== "Waiting for speech..." && word !== "No Face Detected") {
+        speechWaveform.style.opacity = "1";
+        liveWord.className = "text-5xl lg:text-6xl font-bold text-white mt-4 text-glow transition-all duration-300 z-10 text-center";
+      } else {
+        speechWaveform.style.opacity = "0.3";
+        liveWord.className = "text-5xl lg:text-6xl font-bold text-gray-500 mt-4 transition-all duration-300 z-10 text-center";
+      }
+      
+      // Word Update
+      if (liveWord.innerText !== word && word !== "Waiting for speech..." && word !== "No Face Detected" && word !== "Listening...") {
+        liveWord.style.transform = "scale(0.9)";
+        setTimeout(() => {
+          liveWord.innerText = word.toUpperCase();
+          liveWord.style.transform = "scale(1)";
+          speak(word);
+          
+          // Track for CSV & chart
+          const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+          sessionData.push({ time, word, confidence: conf });
+          updateChart(time, conf);
+          
+          // Update most frequent
+          wordCounts[word] = (wordCounts[word] || 0) + 1;
+          const mostFreq = Object.keys(wordCounts).reduce((a, b) => wordCounts[a] > wordCounts[b] ? a : b, "None");
+          freqWordEl.innerText = mostFreq.toUpperCase();
+          
+        }, 100);
+      } else if (word === "Waiting for speech..." || word === "No Face Detected" || word === "Listening...") {
+        liveWord.innerText = word;
+      }
+
+      // Confidence Bar
+      confidenceText.innerText = conf.toFixed(1) + "%";
+      confidenceBar.style.width = conf + "%";
+      if(conf < 50) confidenceBar.className = "h-full bg-gradient-to-r from-red-500 to-orange-400 transition-all duration-300";
+      else if(conf < 80) confidenceBar.className = "h-full bg-gradient-to-r from-orange-400 to-yellow-400 transition-all duration-300";
+      else confidenceBar.className = "h-full bg-gradient-to-r from-primary to-secondary transition-all duration-300";
+
+      // Stats
+      if(data.total_predictions !== undefined) totalWordsEl.innerText = data.total_predictions;
+      if(data.average_confidence !== undefined) avgConfEl.innerText = data.average_confidence;
+
+      // History
+      if(data.history && data.history.length > 0) {
+        historyList.innerHTML = "";
+        [...data.history].reverse().forEach((item, i) => {
+          const div = document.createElement("div");
+          div.className = "flex justify-between items-center p-3 rounded-lg bg-black/30 border border-white/5 hover:bg-white/5 transition";
+          // Mock time for history array if we don't store objects in backend
+          let d = new Date(); d.setSeconds(d.getSeconds() - (i*2));
+          div.innerHTML = `
+            <span class="text-xs font-mono text-gray-500">${d.toLocaleTimeString('en-US', {hour12:false})}</span>
+            <span class="text-sm font-bold text-white tracking-wide">${item.toUpperCase()}</span>
+          `;
+          historyList.appendChild(div);
+        });
+      }
+    }
+
+    function updateChart(label, value) {
+      chart.data.labels.push(label);
+      chart.data.datasets[0].data.push(value);
+      if (chart.data.labels.length > 15) {
+        chart.data.labels.shift();
+        chart.data.datasets[0].data.shift();
+      }
+      chart.update();
+    }
+
+    async function resetSession() {
+      if(!confirm("Are you sure you want to reset session analytics?")) return;
+      try {
+        await fetch("http://127.0.0.1:5000/reset", {method: "POST"});
+        sessionData = [];
+        wordCounts = {};
+        chart.data.labels = [];
+        chart.data.datasets[0].data = [];
+        chart.update();
+        totalWordsEl.innerText = "0";
+        avgConfEl.innerText = "0";
+        freqWordEl.innerText = "None";
+        historyList.innerHTML = '<div class="text-sm text-gray-500 text-center py-6 italic font-medium">Awaiting predictions...</div>';
+      } catch(e) { console.error(e); }
+    }
+
+    function downloadCSV() {
+      if(sessionData.length === 0) return alert("No data to download yet.");
+      let csv = "Time,Word,Confidence\n";
+      sessionData.forEach(r => csv += `${r.time},${r.word},${r.confidence}\n`);
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.setAttribute('hidden', '');
+      a.setAttribute('href', url);
+      a.setAttribute('download', 'silent_speech_session.csv');
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        container.requestFullscreen().catch(err => {
+          console.error(`Error attempting to enable fullscreen: ${err.message}`);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    function takeScreenshot() {
+      if(!isRunning) return;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+      const dataURL = canvas.toDataURL("image/png");
+      const a = document.createElement('a');
+      a.href = dataURL;
+      a.download = `screenshot_${Date.now()}.png`;
+      a.click();
+    }
+  </script>
+</body>
+</html>
