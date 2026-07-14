@@ -94,9 +94,6 @@ To move beyond this Version 1 prototype, future iterations could include:
 - Expanding the dataset significantly to include more words and diverse speakers.
 - Improving the feature extraction to capture finer lip and jaw dynamics.
 
-## Screenshots
-*(Add screenshots of the working web interface and data visualization graphs here from `docs/images/`)*
-
 ## Installation
 1. Clone the repository:
    ```bash
